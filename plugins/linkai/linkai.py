@@ -22,6 +22,7 @@ from config import plugin_config
 class LinkAI(Plugin):
     def __init__(self):
         super().__init__()
+        logger.info("[LinkAI] init...")
         self.handlers[Event.ON_HANDLE_CONTEXT] = self.on_handle_context
         self.config = super().load_config()
         if not self.config:

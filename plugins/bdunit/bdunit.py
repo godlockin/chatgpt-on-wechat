@@ -28,6 +28,7 @@ from plugins import *
 class BDunit(Plugin):
     def __init__(self):
         super().__init__()
+        logger.info("[BDunit] init...")
         try:
             conf = super().load_config()
             if not conf:

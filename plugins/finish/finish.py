@@ -19,6 +19,7 @@ from plugins import *
 class Finish(Plugin):
     def __init__(self):
         super().__init__()
+        logger.info("[Finish] init...")
         self.handlers[Event.ON_HANDLE_CONTEXT] = self.on_handle_context
         logger.info("[Finish] inited")
 

@@ -52,6 +52,7 @@ class StoryTeller:
 class Dungeon(Plugin):
     def __init__(self):
         super().__init__()
+        logger.info("[Dungeon] init...")
         self.handlers[Event.ON_HANDLE_CONTEXT] = self.on_handle_context
         logger.info("[Dungeon] inited")
         # 目前没有设计session过期事件，这里先暂时使用过期字典

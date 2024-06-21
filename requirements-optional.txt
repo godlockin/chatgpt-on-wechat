@@ -1,16 +1,16 @@
-tiktoken>=0.3.2 # openai calculate token
+tiktoken # openai calculate token
 
 #voice
-pydub>=0.25.1 # need ffmpeg
+pydub # need ffmpeg
 SpeechRecognition # google speech to text
-gTTS>=2.3.1 # google text to speech
-pyttsx3>=2.90 # pytsx text to speech
-baidu_aip>=4.16.10 # baidu voice
+gTTS # google text to speech
+pyttsx3 # pytsx text to speech
+baidu_aip # baidu voice
 azure-cognitiveservices-speech # azure voice
 edge-tts # edge-tts
-numpy<=1.24.2
+numpy
 langid # language detect
-elevenlabs==1.0.3 # elevenlabs TTS
+elevenlabs # elevenlabs TTS
 
 #install plugin
 dulwich
@@ -20,10 +20,10 @@ web.py
 wechatpy
 
 # chatgpt-tool-hub plugin
-chatgpt_tool_hub==0.5.0
+chatgpt_tool_hub
 
 # xunfei spark
-websocket-client==1.2.0
+websocket-client
 
 # claude bot
 curl_cffi
@@ -40,7 +40,7 @@ google-generativeai
 dingtalk_stream
 
 # zhipuai
-zhipuai>=2.0.1
+zhipuai
 
 # tongyi qwen new sdk
 dashscope

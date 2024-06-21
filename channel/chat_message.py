@@ -57,10 +57,10 @@ class ChatMessage(object):
 
     _prepare_fn = None
     _prepared = False
-    _rawmsg = None
+    _raw_msg = None
 
     def __init__(self, _rawmsg):
-        self._rawmsg = _rawmsg
+        self._raw_msg = _rawmsg
 
     def prepare(self):
         if self._prepare_fn and not self._prepared:

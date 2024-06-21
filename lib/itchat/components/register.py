@@ -1,4 +1,8 @@
-import logging, traceback, sys, threading
+import logging
+import sys
+import threading
+import traceback
+
 try:
     import Queue
 except ImportError:
@@ -10,33 +14,36 @@ from ..storage import templates
 
 logger = logging.getLogger('itchat')
 
+
 def load_register(core):
-    core.auto_login       = auto_login
+    core.auto_login = auto_login
     core.configured_reply = configured_reply
-    core.msg_register     = msg_register
-    core.run              = run
+    core.msg_register = msg_register
+    core.run = run
+
 
 def auto_login(self, hotReload=False, statusStorageDir='itchat.pkl',
-        enableCmdQR=False, picDir=None, qrCallback=None,
-        loginCallback=None, exitCallback=None):
+               enableCmdQR=False, picDir=None, qrCallback=None,
+               loginCallback=None, exitCallback=None):
     if not test_connect():
         logger.info("You can't get access to internet or wechat domain, so exit.")
         sys.exit()
     self.useHotReload = hotReload
     self.hotReloadDir = statusStorageDir
     if hotReload:
-        rval=self.load_login_status(statusStorageDir,
-                loginCallback=loginCallback, exitCallback=exitCallback)
+        rval = self.load_login_status(statusStorageDir,
+                                      loginCallback=loginCallback, exitCallback=exitCallback)
         if rval:
             return
         logger.error('Hot reload failed, logging in normally, error={}'.format(rval))
         self.logout()
         self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback,
-            loginCallback=loginCallback, exitCallback=exitCallback)
+                   loginCallback=loginCallback, exitCallback=exitCallback)
         self.dump_login_status(statusStorageDir)
     else:
         self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback,
-            loginCallback=loginCallback, exitCallback=exitCallback)
+                   loginCallback=loginCallback, exitCallback=exitCallback)
+
 
 def configured_reply(self):
     ''' determine the type of message and reply if its method is defined
@@ -66,11 +73,13 @@ def configured_reply(self):
             except:
                 logger.warning(traceback.format_exc())
 
+
 def msg_register(self, msgType, isFriendChat=False, isGroupChat=False, isMpChat=False):
     ''' a decorator constructor
         return a specific decorator based on information given '''
     if not (isinstance(msgType, list) or isinstance(msgType, tuple)):
         msgType = [msgType]
+
     def _msg_register(fn):
         for _msgType in msgType:
             if isFriendChat:
@@ -82,12 +91,15 @@ def msg_register(self, msgType, isFriendChat=False, isGroupChat=False, isMpChat=
             if not any((isFriendChat, isGroupChat, isMpChat)):
                 self.functionDict['FriendChat'][_msgType] = fn
         return fn
+
     return _msg_register
+
 
 def run(self, debug=False, blockThread=True):
     logger.info('Start auto replying.')
     if debug:
         set_logging(loggingLevel=logging.DEBUG)
+
     def reply_fn():
         try:
             while self.alive:
@@ -98,6 +110,7 @@ def run(self, debug=False, blockThread=True):
             self.alive = False
             logger.debug('itchat received an ^C and exit.')
             logger.info('Bye~')
+
     if blockThread:
         reply_fn()
     else:

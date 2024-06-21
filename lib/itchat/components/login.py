@@ -1,13 +1,13 @@
-import os
-import time
-import re
 import io
-import threading
 import json
-import xml.dom.minidom
-import random
-import traceback
 import logging
+import os
+import random
+import re
+import threading
+import time
+import traceback
+
 try:
     from httplib import BadStatusLine
 except ImportError:
@@ -332,6 +332,7 @@ def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
             exitCallback()
         else:
             logger.info('LOG OUT!')
+
     if getReceivingFnOnly:
         return maintain_loop
     else:

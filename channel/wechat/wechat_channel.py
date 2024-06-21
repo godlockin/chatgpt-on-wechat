@@ -169,7 +169,7 @@ class WechatChannel(ChatChannel):
         if cmsg.other_user_id in ["weixin"]:
             return
         if cmsg.ctype == ContextType.VOICE:
-            if conf().get("speech_recognition") != True:
+            if not conf().get("speech_recognition"):
                 return
             logger.debug("[WX]receive voice msg: {}".format(cmsg.content))
         elif cmsg.ctype == ContextType.IMAGE:
@@ -177,7 +177,7 @@ class WechatChannel(ChatChannel):
         elif cmsg.ctype == ContextType.PATPAT:
             logger.debug("[WX]receive patpat msg: {}".format(cmsg.content))
         elif cmsg.ctype == ContextType.TEXT:
-            logger.debug("[WX]receive text msg: {}, cmsg={}".format(json.dumps(cmsg._rawmsg, ensure_ascii=False), cmsg))
+            logger.debug("[WX]receive text msg: {}, cmsg={}".format(json.dumps(cmsg._raw_msg, ensure_ascii=False), cmsg))
         else:
             logger.debug("[WX]receive msg: {}, cmsg={}".format(cmsg.content, cmsg))
         context = self._compose_context(cmsg.ctype, cmsg.content, isgroup=False, msg=cmsg)

@@ -43,6 +43,7 @@ class RolePlay:
 class Role(Plugin):
     def __init__(self):
         super().__init__()
+        logger.info("[Role] init...")
         curdir = os.path.dirname(__file__)
         config_path = os.path.join(curdir, "roles.json")
         try:

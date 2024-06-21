@@ -1,4 +1,8 @@
-import logging, traceback, sys, threading
+import logging
+import sys
+import threading
+import traceback
+
 try:
     import Queue
 except ImportError:
@@ -10,16 +14,18 @@ from ..storage import templates
 
 logger = logging.getLogger('itchat')
 
-def load_register(core):
-    core.auto_login       = auto_login
-    core.configured_reply = configured_reply
-    core.msg_register     = msg_register
-    core.run              = run
 
-async def auto_login(self, EventScanPayload=None,ScanStatus=None,event_stream=None,
-        hotReload=True, statusStorageDir='itchat.pkl',
-        enableCmdQR=False, picDir=None, qrCallback=None,
-        loginCallback=None, exitCallback=None):
+def load_register(core):
+    core.auto_login = auto_login
+    core.configured_reply = configured_reply
+    core.msg_register = msg_register
+    core.run = run
+
+
+async def auto_login(self, EventScanPayload=None, ScanStatus=None, event_stream=None,
+                     hotReload=True, statusStorageDir='itchat.pkl',
+                     enableCmdQR=False, picDir=None, qrCallback=None,
+                     loginCallback=None, exitCallback=None):
     if not test_connect():
         logger.info("You can't get access to internet or wechat domain, so exit.")
         sys.exit()
@@ -27,14 +33,17 @@ async def auto_login(self, EventScanPayload=None,ScanStatus=None,event_stream=No
     self.hotReloadDir = statusStorageDir
     if hotReload:
         if await self.load_login_status(statusStorageDir,
-                loginCallback=loginCallback, exitCallback=exitCallback):
+                                        loginCallback=loginCallback, exitCallback=exitCallback):
             return
-        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback, EventScanPayload=EventScanPayload, ScanStatus=ScanStatus, event_stream=event_stream,
-            loginCallback=loginCallback, exitCallback=exitCallback)
+        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback,
+                         EventScanPayload=EventScanPayload, ScanStatus=ScanStatus, event_stream=event_stream,
+                         loginCallback=loginCallback, exitCallback=exitCallback)
         await self.dump_login_status(statusStorageDir)
     else:
-        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback, EventScanPayload=EventScanPayload, ScanStatus=ScanStatus, event_stream=event_stream,
-            loginCallback=loginCallback, exitCallback=exitCallback)
+        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback,
+                         EventScanPayload=EventScanPayload, ScanStatus=ScanStatus, event_stream=event_stream,
+                         loginCallback=loginCallback, exitCallback=exitCallback)
+
 
 async def configured_reply(self, event_stream, payload, message_container):
     ''' determine the type of message and reply if its method is defined
@@ -66,11 +75,13 @@ async def configured_reply(self, event_stream, payload, message_container):
             except:
                 logger.warning(traceback.format_exc())
 
+
 def msg_register(self, msgType, isFriendChat=False, isGroupChat=False, isMpChat=False):
     ''' a decorator constructor
         return a specific decorator based on information given '''
     if not (isinstance(msgType, list) or isinstance(msgType, tuple)):
         msgType = [msgType]
+
     def _msg_register(fn):
         for _msgType in msgType:
             if isFriendChat:
@@ -82,12 +93,15 @@ def msg_register(self, msgType, isFriendChat=False, isGroupChat=False, isMpChat=
             if not any((isFriendChat, isGroupChat, isMpChat)):
                 self.functionDict['FriendChat'][_msgType] = fn
         return fn
+
     return _msg_register
+
 
 async def run(self, debug=False, blockThread=True):
     logger.info('Start auto replying.')
     if debug:
         set_logging(loggingLevel=logging.DEBUG)
+
     async def reply_fn():
         try:
             while self.alive:
@@ -98,6 +112,7 @@ async def run(self, debug=False, blockThread=True):
             self.alive = False
             logger.debug('itchat received an ^C and exit.')
             logger.info('Bye~')
+
     if blockThread:
         await reply_fn()
     else:

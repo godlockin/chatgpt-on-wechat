@@ -23,6 +23,7 @@ from .lib.WordsSearch import WordsSearch
 class Banwords(Plugin):
     def __init__(self):
         super().__init__()
+        logger.info("[Banwords] init...")
         try:
             # load config
             conf = super().load_config()

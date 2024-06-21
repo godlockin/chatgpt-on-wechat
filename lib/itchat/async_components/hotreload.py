@@ -1,19 +1,22 @@
-import pickle, os
 import logging
+import os
+import pickle
 
 import requests  # type: ignore
 
+from .contact import update_local_chatrooms, update_local_friends
+from .messages import produce_msg
 from ..config import VERSION
 from ..returnvalues import ReturnValue
 from ..storage import templates
-from .contact import update_local_chatrooms, update_local_friends
-from .messages import produce_msg
 
 logger = logging.getLogger('itchat')
+
 
 def load_hotreload(core):
     core.dump_login_status = dump_login_status
     core.load_login_status = load_login_status
+
 
 async def dump_login_status(self, fileDir=None):
     fileDir = fileDir or self.hotReloadDir
@@ -24,16 +27,17 @@ async def dump_login_status(self, fileDir=None):
     except:
         raise Exception('Incorrect fileDir')
     status = {
-        'version'   : VERSION,
-        'loginInfo' : self.loginInfo,
-        'cookies'   : self.s.cookies.get_dict(),
-        'storage'   : self.storageClass.dumps()}
+        'version': VERSION,
+        'loginInfo': self.loginInfo,
+        'cookies': self.s.cookies.get_dict(),
+        'storage': self.storageClass.dumps()}
     with open(fileDir, 'wb') as f:
         pickle.dump(status, f)
     logger.debug('Dump login status for hot reload successfully.')
 
+
 async def load_login_status(self, fileDir,
-        loginCallback=None, exitCallback=None):
+                            loginCallback=None, exitCallback=None):
     try:
         with open(fileDir, 'rb') as f:
             j = pickle.load(f)
@@ -45,8 +49,8 @@ async def load_login_status(self, fileDir,
 
     if j.get('version', '') != VERSION:
         logger.debug(('you have updated itchat from %s to %s, ' +
-            'so cached status is ignored') % (
-            j.get('version', 'old version'), VERSION))
+                      'so cached status is ignored') % (
+                         j.get('version', 'old version'), VERSION))
         return ReturnValue({'BaseResponse': {
             'ErrMsg': 'cached status ignored because of version',
             'Ret': -1005, }})
@@ -83,6 +87,7 @@ async def load_login_status(self, fileDir,
         return ReturnValue({'BaseResponse': {
             'ErrMsg': 'loading login status succeeded.',
             'Ret': 0, }})
+
 
 async def load_last_login_status(session, cookiesDict):
     try:

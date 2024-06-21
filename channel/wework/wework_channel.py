@@ -239,7 +239,7 @@ class WeworkChannel(ChatChannel):
         elif cmsg.ctype == ContextType.PATPAT:
             logger.debug("[WX]receive patpat msg: {}".format(cmsg.content))
         elif cmsg.ctype == ContextType.TEXT:
-            logger.debug("[WX]receive text msg: {}, cmsg={}".format(json.dumps(cmsg._rawmsg, ensure_ascii=False), cmsg))
+            logger.debug("[WX]receive text msg: {}, cmsg={}".format(json.dumps(cmsg._raw_msg, ensure_ascii=False), cmsg))
         else:
             logger.debug("[WX]receive msg: {}, cmsg={}".format(cmsg.content, cmsg))
         context = self._compose_context(cmsg.ctype, cmsg.content, isgroup=False, msg=cmsg)

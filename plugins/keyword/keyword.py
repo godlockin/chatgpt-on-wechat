@@ -21,6 +21,7 @@ from plugins import *
 class Keyword(Plugin):
     def __init__(self):
         super().__init__()
+        logger.info("[Keyword] init...")
         try:
             curdir = os.path.dirname(__file__)
             config_path = os.path.join(curdir, "config.json")

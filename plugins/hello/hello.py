@@ -27,6 +27,7 @@ class Hello(Plugin):
 
     def __init__(self):
         super().__init__()
+        logger.info("[Hello] init...")
         try:
             self.config = super().load_config()
             if not self.config:
