@@ -1,57 +1,50 @@
-# encoding:utf-8
-
+import logging
 import os
 import signal
 import sys
+import threading
 import time
 
+import config
 from channel import channel_factory
 from common import const
-from config import load_config
-from plugins import *
-import threading
+from config import (
+    load_config,
+    config,
+)
+from plugins import PluginManager
+
+logger = logging.getLogger('itchat')
 
 
-def sigterm_handler_wrap(_signo):
-    old_handler = signal.getsignal(_signo)
-
-    def func(_signo, _stack_frame):
-        logger.info("signal {} received, exiting...".format(_signo))
-        conf().save_user_datas()
-        if callable(old_handler):  #  check old_handler
-            return old_handler(_signo, _stack_frame)
-        sys.exit(0)
-
-    signal.signal(_signo, func)
+def sigterm_handler(signum, frame):
+    logger.info(f"Signal {signum} received, exiting...")
+    config.save_user_datas()
+    sys.exit(0)
 
 
 def start_channel(channel_name: str):
     channel = channel_factory.create_channel(channel_name)
-    if channel_name in ["wx", "wxy", "terminal", "wechatmp", "wechatmp_service", "wechatcom_app", "wework",
-                        const.FEISHU, const.DINGTALK]:
+    if channel_name in const.PLUGIN_CHANNELS:
         PluginManager().load_plugins()
 
-    if conf().get("use_linkai"):
+    if config.get("use_linkai"):
         try:
             from common import linkai_client
             threading.Thread(target=linkai_client.start, args=(channel,)).start()
         except Exception as e:
-            pass
+            logger.error(f"Failed to start linkai_client: {e}")
+
     channel.startup()
 
 
 def run():
     try:
-        # load config
         load_config()
-        # ctrl + c
-        sigterm_handler_wrap(signal.SIGINT)
-        # kill signal
-        sigterm_handler_wrap(signal.SIGTERM)
+        signal.signal(signal.SIGINT, sigterm_handler)
+        signal.signal(signal.SIGTERM, sigterm_handler)
 
-        # create channel
-        channel_name = conf().get("channel_type", "wx")
-
+        channel_name = config.get("channel_type", "wx")
         if "--cmd" in sys.argv:
             channel_name = "terminal"
 
@@ -62,6 +55,7 @@ def run():
 
         while True:
             time.sleep(1)
+
     except Exception as e:
         logger.error("App startup failed!")
         logger.exception(e)

@@ -4,42 +4,39 @@ channel factory
 from common import const
 from .channel import Channel
 
-
 def create_channel(channel_type) -> Channel:
     """
-    create a channel instance
-    :param channel_type: channel type code
-    :return: channel instance
+    Create a channel instance based on channel_type.
+
+    :param channel_type: Type of channel to create.
+    :return: Channel instance corresponding to channel_type.
+    :raises RuntimeError: If an unsupported channel_type is provided.
     """
-    ch = Channel()
-    if channel_type == "wx":
-        from channel.wechat.wechat_channel import WechatChannel
-        ch = WechatChannel()
-    elif channel_type == "wxy":
-        from channel.wechat.wechaty_channel import WechatyChannel
-        ch = WechatyChannel()
-    elif channel_type == "terminal":
-        from channel.terminal.terminal_channel import TerminalChannel
-        ch = TerminalChannel()
-    elif channel_type == "wechatmp":
-        from channel.wechatmp.wechatmp_channel import WechatMPChannel
-        ch = WechatMPChannel(passive_reply=True)
-    elif channel_type == "wechatmp_service":
-        from channel.wechatmp.wechatmp_channel import WechatMPChannel
-        ch = WechatMPChannel(passive_reply=False)
-    elif channel_type == "wechatcom_app":
-        from channel.wechatcom.wechatcomapp_channel import WechatComAppChannel
-        ch = WechatComAppChannel()
-    elif channel_type == "wework":
-        from channel.wework.wework_channel import WeworkChannel
-        ch = WeworkChannel()
-    elif channel_type == const.FEISHU:
-        from channel.feishu.feishu_channel import FeiShuChanel
-        ch = FeiShuChanel()
-    elif channel_type == const.DINGTALK:
-        from channel.dingtalk.dingtalk_channel import DingTalkChanel
-        ch = DingTalkChanel()
-    else:
-        raise RuntimeError
+    # Dictionary mapping channel types to their corresponding classes
+    channel_classes = {
+        "wx": "wechat.wechat_channel.WechatChannel",
+        "wxy": "wechat.wechaty_channel.WechatyChannel",
+        "terminal": "terminal.terminal_channel.TerminalChannel",
+        "wechatmp": "wechatmp.wechatmp_channel.WechatMPChannel",
+        "wechatmp_service": "wechatmp.wechatmp_channel.WechatMPChannel",
+        "wechatcom_app": "wechatcom.wechatcomapp_channel.WechatComAppChannel",
+        "wework": "wework.wework_channel.WeworkChannel",
+        const.FEISHU: "feishu.feishu_channel.FeiShuChannel",
+        const.DINGTALK: "dingtalk.dingtalk_channel.DingTalkChannel",
+    }
+
+    assert channel_type in channel_classes, f"Unsupported channel type: {channel_type}"
+
+    # Dynamically import the appropriate channel class
+    channel_class_path = channel_classes[channel_type]
+    module_path, class_name = channel_class_path.rsplit('.', 1)
+    module = __import__(module_path, fromlist=[class_name])
+    ChannelClass = getattr(module, class_name)
+
+    # Instantiate the channel class
+    ch = ChannelClass()
+
+    # Set the channel_type attribute
     ch.channel_type = channel_type
+
     return ch

@@ -11,6 +11,7 @@ from channel.channel import Channel
 from common.dequeue import Dequeue
 from common import memory
 from plugins import *
+from config import config
 
 try:
     from voice.audio_convert import any_to_wav
@@ -46,9 +47,8 @@ class ChatChannel(Channel):
         first_in = "receiver" not in context
         # 群名匹配过程，设置session_id和receiver
         if first_in:  # context首次传入时，receiver是None，根据类型设置receiver
-            config = conf()
             cmsg = context["msg"]
-            user_data = conf().get_user_data(cmsg.from_user_id)
+            user_data = config.get_user_data(cmsg.from_user_id)
             context["openai_api_key"] = user_data.get("openai_api_key")
             context["gpt_model"] = user_data.get("gpt_model")
             if context.get("isgroup", False):
@@ -64,7 +64,7 @@ class ChatChannel(Channel):
                         check_contain(group_name, group_name_keyword_white_list),
                     ]
                 ):
-                    group_chat_in_one_session = conf().get("group_chat_in_one_session", [])
+                    group_chat_in_one_session = config.get("group_chat_in_one_session", [])
                     session_id = cmsg.actual_user_id
                     if any(
                         [
@@ -96,11 +96,11 @@ class ChatChannel(Channel):
                 logger.debug("[chat_channel]reference query skipped")
                 return None
 
-            nick_name_black_list = conf().get("nick_name_black_list", [])
+            nick_name_black_list = config.get("nick_name_black_list", [])
             if context.get("isgroup", False):  # 群聊
                 # 校验关键字
-                match_prefix = check_prefix(content, conf().get("group_chat_prefix"))
-                match_contain = check_contain(content, conf().get("group_chat_keyword"))
+                match_prefix = check_prefix(content, config.get("group_chat_prefix"))
+                match_contain = check_contain(content, config.get("group_chat_keyword"))
                 flag = False
                 if context["msg"].to_user_id != context["msg"].actual_user_id:
                     if match_prefix is not None or match_contain is not None:
@@ -115,7 +115,7 @@ class ChatChannel(Channel):
                             return None
 
                         logger.info("[chat_channel]receive group at")
-                        if not conf().get("group_at_off", False):
+                        if not config.get("group_at_off", False):
                             flag = True
                         pattern = f"@{re.escape(self.name)}(\u2005|\u0020)"
                         subtract_res = re.sub(pattern, r"", content)
@@ -139,7 +139,7 @@ class ChatChannel(Channel):
                     logger.warning(f"[chat_channel] Nickname '{nick_name}' in In BlackList, ignore")
                     return None
 
-                match_prefix = check_prefix(content, conf().get("single_chat_prefix", [""]))
+                match_prefix = check_prefix(content, config.get("single_chat_prefix", [""]))
                 if match_prefix is not None:  # 判断如果匹配到自定义前缀，则返回过滤掉前缀+空格后的内容
                     content = content.replace(match_prefix, "", 1).strip()
                 elif context["origin_ctype"] == ContextType.VOICE:  # 如果源消息是私聊的语音消息，允许不匹配前缀，放宽条件
@@ -147,17 +147,17 @@ class ChatChannel(Channel):
                 else:
                     return None
             content = content.strip()
-            img_match_prefix = check_prefix(content, conf().get("image_create_prefix",[""]))
+            img_match_prefix = check_prefix(content, config.get("image_create_prefix",[""]))
             if img_match_prefix:
                 content = content.replace(img_match_prefix, "", 1)
                 context.type = ContextType.IMAGE_CREATE
             else:
                 context.type = ContextType.TEXT
             context.content = content.strip()
-            if "desire_rtype" not in context and conf().get("always_reply_voice") and ReplyType.VOICE not in self.NOT_SUPPORT_REPLYTYPE:
+            if "desire_rtype" not in context and config.get("always_reply_voice") and ReplyType.VOICE not in self.NOT_SUPPORT_REPLYTYPE:
                 context["desire_rtype"] = ReplyType.VOICE
         elif context.type == ContextType.VOICE:
-            if "desire_rtype" not in context and conf().get("voice_reply_voice") and ReplyType.VOICE not in self.NOT_SUPPORT_REPLYTYPE:
+            if "desire_rtype" not in context and config.get("voice_reply_voice") and ReplyType.VOICE not in self.NOT_SUPPORT_REPLYTYPE:
                 context["desire_rtype"] = ReplyType.VOICE
         return context
 
@@ -255,9 +255,9 @@ class ChatChannel(Channel):
                     if context.get("isgroup", False):
                         if not context.get("no_need_at", False):
                             reply_text = "@" + context["msg"].actual_user_nickname + "\n" + reply_text.strip()
-                        reply_text = conf().get("group_chat_reply_prefix", "") + reply_text + conf().get("group_chat_reply_suffix", "")
+                        reply_text = config.get("group_chat_reply_prefix", "") + reply_text + config.get("group_chat_reply_suffix", "")
                     else:
-                        reply_text = conf().get("single_chat_reply_prefix", "") + reply_text + conf().get("single_chat_reply_suffix", "")
+                        reply_text = config.get("single_chat_reply_prefix", "") + reply_text + config.get("single_chat_reply_suffix", "")
                     reply.content = reply_text
                 elif reply.type == ReplyType.ERROR or reply.type == ReplyType.INFO:
                     reply.content = "[" + str(reply.type) + "]\n" + reply.content
@@ -324,7 +324,7 @@ class ChatChannel(Channel):
             if session_id not in self.sessions:
                 self.sessions[session_id] = [
                     Dequeue(),
-                    threading.BoundedSemaphore(conf().get("concurrency_in_session", 4)),
+                    threading.BoundedSemaphore(config.get("concurrency_in_session", 4)),
                 ]
             if context.type == ContextType.TEXT and context.content.startswith("#"):
                 self.sessions[session_id][0].putleft(context)  # 优先处理管理命令

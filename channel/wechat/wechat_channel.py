@@ -14,14 +14,17 @@ import requests
 
 from bridge.context import *
 from bridge.reply import *
-from channel.chat_channel import ChatChannel
 from channel import chat_channel
+from channel.chat_channel import ChatChannel
 from channel.wechat.wechat_message import *
 from common.expired_dict import ExpiredDict
 from common.log import logger
 from common.singleton import singleton
 from common.time_check import time_checker
-from config import conf, get_appdata_dir
+from config import (
+    get_appdata_dir,
+    config,
+)
 from lib import itchat
 from lib.itchat.content import *
 
@@ -56,7 +59,7 @@ def _check(func):
             return
         self.receivedMsgs[msgId] = True
         create_time = cmsg.create_time  # 消息时间戳
-        if conf().get("hot_reload") == True and int(create_time) < int(time.time()) - 60:  # 跳过1分钟前的历史消息
+        if config.get("hot_reload") == True and int(create_time) < int(time.time()) - 60:  # 跳过1分钟前的历史消息
             logger.debug("[WX]history message {} skipped".format(msgId))
             return
         if cmsg.my_msg and not cmsg.is_group:
@@ -96,7 +99,7 @@ def qrCallback(uuid, status, qrcode):
         print(qr_api4)
         print(qr_api2)
         print(qr_api1)
-        _send_qr_code([qr_api3, qr_api4, qr_api2, qr_api1])
+        # _send_qr_code([qr_api3, qr_api4, qr_api2, qr_api1])
         qr = qrcode.QRCode(border=1)
         qr.add_data(url)
         qr.make(fit=True)
@@ -109,14 +112,14 @@ class WechatChannel(ChatChannel):
 
     def __init__(self):
         super().__init__()
-        self.receivedMsgs = ExpiredDict(conf().get("expires_in_seconds"))
+        self.receivedMsgs = ExpiredDict(config.get("expires_in_seconds"))
         self.auto_login_times = 0
 
     def startup(self):
         try:
             itchat.instance.receivingRetryCount = 600  # 修改断线超时时间
             # login by scan QRCode
-            hotReload = conf().get("hot_reload", False)
+            hotReload = config.get("hot_reload", False)
             status_path = os.path.join(get_appdata_dir(), "itchat.pkl")
             itchat.auto_login(
                 enableCmdQR=2,
@@ -137,8 +140,8 @@ class WechatChannel(ChatChannel):
     def exitCallback(self):
         try:
             from common.linkai_client import chat_client
-            if chat_client.client_id and conf().get("use_linkai"):
-                _send_logout()
+            if chat_client.client_id and config.get("use_linkai"):
+                # _send_logout()
                 time.sleep(2)
                 self.auto_login_times += 1
                 if self.auto_login_times < 100:
@@ -149,7 +152,7 @@ class WechatChannel(ChatChannel):
 
     def loginCallback(self):
         logger.debug("Login success")
-        _send_login_success()
+        # _send_login_success()
 
     # handle_* 系列函数处理收到的消息后构造Context，然后传入produce函数中处理Context和发送回复
     # Context包含了消息的所有信息，包括以下属性
@@ -169,7 +172,7 @@ class WechatChannel(ChatChannel):
         if cmsg.other_user_id in ["weixin"]:
             return
         if cmsg.ctype == ContextType.VOICE:
-            if not conf().get("speech_recognition"):
+            if not config.get("speech_recognition"):
                 return
             logger.debug("[WX]receive voice msg: {}".format(cmsg.content))
         elif cmsg.ctype == ContextType.IMAGE:
@@ -188,7 +191,7 @@ class WechatChannel(ChatChannel):
     @_check
     def handle_group(self, cmsg: ChatMessage):
         if cmsg.ctype == ContextType.VOICE:
-            if conf().get("group_speech_recognition") != True:
+            if config.get("group_speech_recognition") != True:
                 return
             logger.debug("[WX]receive voice for group msg: {}".format(cmsg.content))
         elif cmsg.ctype == ContextType.IMAGE:

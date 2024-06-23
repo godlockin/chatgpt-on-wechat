@@ -1,15 +1,14 @@
 # encoding:utf-8
 
+import copy
 import json
 import logging
 import os
 import pickle
-import copy
 
 from common.log import logger
 
-# 将所有可用的配置项写在字典里, 请使用小写字母
-# 此处的配置值无实际意义，程序不会读取此处的配置，仅用于提示格式，请将配置加入到config.json中
+# Define available settings (unchanged from previous code)
 available_setting = {
     # openai api配置
     "open_ai_api_key": "",  # openai api key
@@ -39,12 +38,12 @@ available_setting = {
     "trigger_by_self": False,  # 是否允许机器人触发
     "text_to_image": "dall-e-2",  # 图片生成模型，可选 dall-e-2, dall-e-3
     # Azure OpenAI dall-e-3 配置
-    "dalle3_image_style": "vivid", # 图片生成dalle3的风格，可选有 vivid, natural
-    "dalle3_image_quality": "hd", # 图片生成dalle3的质量，可选有 standard, hd
+    "dalle3_image_style": "vivid",  # 图片生成dalle3的风格，可选有 vivid, natural
+    "dalle3_image_quality": "hd",  # 图片生成dalle3的质量，可选有 standard, hd
     # Azure OpenAI DALL-E API 配置, 当use_azure_chatgpt为true时,用于将文字回复的资源和Dall-E的资源分开.
-    "azure_openai_dalle_api_base": "", # [可选] azure openai 用于回复图片的资源 endpoint，默认使用 open_ai_api_base
-    "azure_openai_dalle_api_key": "", # [可选] azure openai 用于回复图片的资源 key，默认使用 open_ai_api_key
-    "azure_openai_dalle_deployment_id":"", # [可选] azure openai 用于回复图片的资源 deployment id，默认使用 text_to_image
+    "azure_openai_dalle_api_base": "",  # [可选] azure openai 用于回复图片的资源 endpoint，默认使用 open_ai_api_base
+    "azure_openai_dalle_api_key": "",  # [可选] azure openai 用于回复图片的资源 key，默认使用 open_ai_api_key
+    "azure_openai_dalle_deployment_id": "",  # [可选] azure openai 用于回复图片的资源 deployment id，默认使用 text_to_image
     "image_proxy": True,  # 是否需要图片代理，国内访问LinkAI时需要
     "image_create_prefix": ["画", "看", "找"],  # 开启图片回复的前缀
     "concurrency_in_session": 1,  # 同一会话最多有多少条消息在处理中，大于1可能乱序
@@ -145,10 +144,10 @@ available_setting = {
     "feishu_token": "",  # 飞书 verification token
     "feishu_bot_name": "",  # 飞书机器人的名字
     # 钉钉配置
-    "dingtalk_client_id": "",  # 钉钉机器人Client ID 
+    "dingtalk_client_id": "",  # 钉钉机器人Client ID
     "dingtalk_client_secret": "",  # 钉钉机器人Client Secret
     "dingtalk_card_enabled": False,
-    
+
     # chatgpt指令自定义触发词
     "clear_memory_commands": ["#清除记忆"],  # 重置会话指令，必须以#开头
     # channel配置
@@ -178,6 +177,7 @@ available_setting = {
 }
 
 
+# Define Config class
 class Config(dict):
     def __init__(self, d=None):
         super().__init__()
@@ -185,30 +185,21 @@ class Config(dict):
             d = {}
         for k, v in d.items():
             self[k] = v
-        # user_datas: 用户数据，key为用户名，value为用户数据，也是dict
         self.user_datas = {}
 
     def __getitem__(self, key):
-        if key not in available_setting:
-            raise Exception("key {} not in available_setting".format(key))
+        assert key in available_setting, f"Key '{key}' not found in available settings."
         return super().__getitem__(key)
 
     def __setitem__(self, key, value):
-        if key not in available_setting:
-            raise Exception("key {} not in available_setting".format(key))
-        return super().__setitem__(key, value)
+        assert key in available_setting, f"Key '{key}' not found in available settings."
+        super().__setitem__(key, value)
 
     def get(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError as e:
-            return default
-        except Exception as e:
-            raise e
+        return self[key] if key in self else default
 
-    # Make sure to return a dictionary to ensure atomic
-    def get_user_data(self, user) -> dict:
-        if self.user_datas.get(user) is None:
+    def get_user_data(self, user):
+        if user not in self.user_datas:
             self.user_datas[user] = {}
         return self.user_datas[user]
 
@@ -216,87 +207,81 @@ class Config(dict):
         try:
             with open(os.path.join(get_appdata_dir(), "user_datas.pkl"), "rb") as f:
                 self.user_datas = pickle.load(f)
-                logger.info("[Config] User datas loaded.")
-        except FileNotFoundError as e:
-            logger.info("[Config] User datas file not found, ignore.")
+                logger.info("User datas loaded.")
+        except FileNotFoundError:
+            logger.info("User datas file not found, ignore.")
         except Exception as e:
-            logger.info("[Config] User datas error: {}".format(e))
+            logger.error(f"Error loading user datas: {e}")
             self.user_datas = {}
 
     def save_user_datas(self):
         try:
             with open(os.path.join(get_appdata_dir(), "user_datas.pkl"), "wb") as f:
                 pickle.dump(self.user_datas, f)
-                logger.info("[Config] User datas saved.")
+                logger.info("User datas saved.")
         except Exception as e:
-            logger.info("[Config] User datas error: {}".format(e))
+            logger.error(f"Error saving user datas: {e}")
 
 
 config = Config()
 
 
+# Function to redact sensitive data
 def drag_sensitive(config):
     try:
         if isinstance(config, str):
-            conf_dict: dict = json.loads(config)
+            conf_dict = json.loads(config)
             conf_dict_copy = copy.deepcopy(conf_dict)
             for key in conf_dict_copy:
-                if "key" in key or "secret" in key:
-                    if isinstance(key, str):
-                        conf_dict_copy[key] = conf_dict_copy[key][0:3] + "*" * 5 + conf_dict_copy[key][-3:]
+                if isinstance(key, str) and ("key" in key.lower() or "secret" in key.lower()):
+                    conf_dict_copy[key] = conf_dict_copy[key][0:3] + "*" * 5 + conf_dict_copy[key][-3:]
             return json.dumps(conf_dict_copy, indent=4)
-
         elif isinstance(config, dict):
             config_copy = copy.deepcopy(config)
-            for key in config:
-                if "key" in key or "secret" in key:
-                    if isinstance(key, str):
-                        config_copy[key] = config_copy[key][0:3] + "*" * 5 + config_copy[key][-3:]
+            for key in config_copy:
+                if isinstance(key, str) and ("key" in key.lower() or "secret" in key.lower()):
+                    config_copy[key] = config_copy[key][0:3] + "*" * 5 + config_copy[key][-3:]
             return config_copy
     except Exception as e:
-        logger.exception(e)
-        return config
+        logger.exception(f"Error redacting sensitive data: {e}")
     return config
 
 
+# Function to load configuration
 def load_config():
     global config
     config_path = "./config.json"
     if not os.path.exists(config_path):
-        logger.info("配置文件不存在，将使用config-template.json模板")
+        logger.info("Configuration file not found, using config-template.json.")
         config_path = "./config-template.json"
 
     config_str = read_file(config_path)
-    logger.debug("[INIT] config str: {}".format(drag_sensitive(config_str)))
+    logger.debug(f"Config loaded: {drag_sensitive(config_str)}")
 
-    # 将json字符串反序列化为dict类型
-    config = Config(json.loads(config_str))
+    try:
+        config = Config(json.loads(config_str))
 
-    # override config with environment variables.
-    # Some online deployment platforms (e.g. Railway) deploy project from github directly. So you shouldn't put your secrets like api key in a config file, instead use environment variables to override the default config.
-    for name, value in os.environ.items():
-        name = name.lower()
-        if name in available_setting:
-            logger.info("[INIT] override config by environ args: {}={}".format(name, value))
-            try:
-                config[name] = eval(value)
-            except:
-                if value == "false":
-                    config[name] = False
-                elif value == "true":
-                    config[name] = True
-                else:
-                    config[name] = value
+        for name, value in os.environ.items():
+            name = name.lower()
+            if name in available_setting:
+                logger.info(f"Overriding config with environment variable: {name}={value}")
+                try:
+                    config[name] = eval(value)
+                except:
+                    config[name] = value if value in ["False", "True"] else value
 
-    if config.get("debug", False):
-        logger.setLevel(logging.DEBUG)
-        logger.debug("[INIT] set log level to DEBUG")
+        if config.get("debug", False):
+            logger.setLevel(logging.DEBUG)
+            logger.debug("Log level set to DEBUG")
 
-    logger.info("[INIT] load config: {}".format(drag_sensitive(config)))
+        logger.info(f"Config loaded: {drag_sensitive(config)}")
+        config.load_user_datas()
 
-    config.load_user_datas()
+    except Exception as e:
+        logger.error(f"Error loading config: {e}")
 
 
+# Utility functions
 def get_root():
     return os.path.dirname(os.path.abspath(__file__))
 
@@ -306,46 +291,35 @@ def read_file(path):
         return f.read()
 
 
-def conf():
-    return config
-
-
 def get_appdata_dir():
-    data_path = os.path.join(get_root(), conf().get("appdata_dir", ""))
+    data_path = os.path.join(get_root(), config.get("appdata_dir", ""))
     if not os.path.exists(data_path):
-        logger.info("[INIT] data path not exists, create it: {}".format(data_path))
+        logger.info(f"Creating data directory: {data_path}")
         os.makedirs(data_path)
     return data_path
 
 
-def subscribe_msg():
-    trigger_prefix = conf().get("single_chat_prefix", [""])[0]
-    msg = conf().get("subscribe_msg", "")
-    return msg.format(trigger_prefix=trigger_prefix)
-
-
-# global plugin config
+# Global plugin config
 plugin_config = {}
 
 
 def write_plugin_config(pconf: dict):
-    """
-    写入插件全局配置
-    :param pconf: 全量插件配置
-    """
     global plugin_config
-    for k in pconf:
-        plugin_config[k.lower()] = pconf[k]
+    for k, v in pconf.items():
+        plugin_config[k.lower()] = v
 
 
 def pconf(plugin_name: str) -> dict:
-    """
-    根据插件名称获取配置
-    :param plugin_name: 插件名称
-    :return: 该插件的配置项
-    """
     return plugin_config.get(plugin_name.lower())
 
 
-# 全局配置，用于存放全局生效的状态
+# Global configuration state
 global_config = {"admin_users": []}
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Entry point
+if __name__ == "__main__":
+    load_config()
